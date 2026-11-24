@@ -1,0 +1,74 @@
+# The SparkDiff report Action (T13.2): runs the published sparkdiff/report
+# image, which posts one CI result to the evidence API keyed by the commit.
+# Every input below is one flag of spark-report, except server and token,
+# which reach it as SPARK_SERVER and SPARK_TOKEN: the token is never a flag,
+# so it is never a word on a command line. There is deliberately no input for
+# --insecure: from GitHub's runners the server is always reached over https.
+# In SparkDiff's own repository a test holds this file to the binary's flags,
+# in both directions.
+name: SparkDiff report
+description: Report a CI result to SparkDiff, keyed by the commit, so it shows on the Spark that commit is a revision of.
+author: SparkDiff
+branding:
+  icon: check-circle
+  color: green
+inputs:
+  server:
+    description: The SparkDiff server's address, https://... (a repository or organization variable).
+    required: true
+  token:
+    description: A SparkDiff API token for the organization's CI agent (a repository or organization secret).
+    required: true
+  repo:
+    description: The repository's name in SparkDiff.
+    required: true
+  sha:
+    description: The 40-hex commit the result is for. Empty means GITHUB_SHA, the commit a push run is on.
+    required: false
+    default: ""
+  kind:
+    description: test_run, ci_check, coverage, review_verdict, recording or custom.
+    required: false
+    default: test_run
+  status:
+    description: success, failure, pending, neutral or error.
+    required: false
+    default: neutral
+  source:
+    description: Who ran it. Empty means github-actions.
+    required: false
+    default: ""
+  url:
+    description: A link to the run. Empty means this workflow run's page.
+    required: false
+    default: ""
+  summary:
+    description: One status line, at most 4096 bytes. A log belongs behind payload.
+    required: false
+    default: ""
+  payload:
+    description: A pointer to a blob holding the log or the report.
+    required: false
+    default: ""
+  timeout:
+    description: The most the whole report may take, retries included (a Go duration, such as 60s).
+    required: false
+    default: 60s
+runs:
+  using: docker
+  # sparkdiff/report:0.1.0, pinned by digest so the tag cannot be moved under a
+  # pinned Action (linux/amd64 and linux/arm64).
+  image: docker://sparkdiff/report@sha256:c72911b5763229e153dec5a7371744ed7c3bf807511c4afd282153e313897dbb
+  env:
+    SPARK_SERVER: ${{ inputs.server }}
+    SPARK_TOKEN: ${{ inputs.token }}
+  args:
+    - --repo=${{ inputs.repo }}
+    - --sha=${{ inputs.sha }}
+    - --kind=${{ inputs.kind }}
+    - --status=${{ inputs.status }}
+    - --source=${{ inputs.source }}
+    - --url=${{ inputs.url }}
+    - --summary=${{ inputs.summary }}
+    - --payload=${{ inputs.payload }}
+    - --timeout=${{ inputs.timeout }}
